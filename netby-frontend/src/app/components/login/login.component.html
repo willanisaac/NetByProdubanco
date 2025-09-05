@@ -1,0 +1,61 @@
+<div class="login-container">
+  <div class="login-card fade-in">
+    <h1 class="login-title">Iniciar Sesión - NetBy Produbanco</h1>
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
+      <div class="form-group">
+        <label for="username" class="form-label">Usuario</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          [(ngModel)]="credentials.username"
+          class="form-input"
+          placeholder="Ingresa tu usuario"
+          required
+          #usernameInput="ngModel"
+        >
+        <div *ngIf="usernameInput.invalid && usernameInput.touched" class="error-message">
+          El usuario es requerido
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password" class="form-label">Contraseña</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          [(ngModel)]="credentials.password"
+          class="form-input"
+          placeholder="Ingresa tu contraseña"
+          required
+          #passwordInput="ngModel"
+        >
+        <div *ngIf="passwordInput.invalid && passwordInput.touched" class="error-message">
+          La contraseña es requerida
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <button
+          type="submit"
+          class="btn"
+          [disabled]="loginForm.invalid || isLoading"
+        >
+          <span *ngIf="!isLoading">Iniciar Sesión</span>
+          <span *ngIf="isLoading">Iniciando sesión...</span>
+        </button>
+      </div>
+      
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+      
+      <div class="login-hint">
+        <p><strong>Credenciales de prueba:</strong></p>
+        <p>Usuario: admin</p>
+        <p>Contraseña: admin</p>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,4 @@
+netby-frontend/.angular/
+netby-backend/.vs/
+netby-backend/*/bin/
+netby-backend/*/obj/

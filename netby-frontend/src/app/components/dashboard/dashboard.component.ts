@@ -4,17 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { ProductService } from '../../services/product.service';
+import { TransactionService } from '../../services/transaction.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product, ProductCategory } from '../../models/product.model';
-import { Movement } from '../../models/movement.model';
+import { Transaction, TransactionFormData } from '../../models/movement.model';
 import { ProductModalComponent, ProductFormData } from '../product-modal/product-modal.component';
+import { TransactionModalComponent } from '../transaction-modal/transaction-modal.component';
+import { TransactionDetailComponent } from '../transaction-detail/transaction-detail.component';
 import { NotificationComponent, Notification } from '../notification/notification.component';
 
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ProductModalComponent, NotificationComponent],
+  imports: [CommonModule, FormsModule, ProductModalComponent, TransactionModalComponent, TransactionDetailComponent, NotificationComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -40,17 +43,26 @@ export class DashboardComponent implements OnInit {
   // Notificaciones
   notifications: Notification[] = [];
 
-  // Movimientos
-  movements: Movement[] = [];
-  filteredMovements: Movement[] = [];
-  movementSearchTerm = '';
-  selectedMovementType = '';
+  // Transacciones
+  transactions: Transaction[] = [];
+  filteredTransactions: Transaction[] = [];
+  transactionSearchTerm = '';
+  selectedTransactionType = '';
   selectedDate = '';
+  isLoadingTransactions = false;
+  transactionError = '';
+
+  // Modal de transacciones
+  isTransactionModalOpen = false;
+  isTransactionDetailOpen = false;
+  selectedTransaction: Transaction | null = null;
+  isTransactionModalLoading = false;
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private productService: ProductService,
+    private transactionService: TransactionService,
     private notificationService: NotificationService
   ) {}
 
@@ -58,10 +70,10 @@ export class DashboardComponent implements OnInit {
     this.currentUser = this.authService.getCurrentUser();
     this.initializeData();
     this.loadProducts();
+    this.loadTransactions();
     this.subscribeToNotifications();
     this.isProductModalOpen = false;
     this.closeProductModal();
-
   }
 
   subscribeToNotifications() {
@@ -80,7 +92,7 @@ export class DashboardComponent implements OnInit {
       { id: 5, name: 'Libros', description: 'Libros y material educativo' }
     ];
 
-    this.filteredMovements = [...this.movements];
+    this.filteredTransactions = [...this.transactions];
   }
 
   /**
@@ -104,6 +116,27 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * Carga las transacciones desde la API
+   */
+  loadTransactions() {
+    this.isLoadingTransactions = true;
+    this.transactionError = '';
+
+    this.transactionService.getTransactions().subscribe({
+      next: (transactions) => {
+        this.transactions = transactions;
+        this.filteredTransactions = [...this.transactions];
+        this.isLoadingTransactions = false;
+      },
+      error: (error) => {
+        this.transactionError = error.message;
+        this.isLoadingTransactions = false;
+        console.error('Error al cargar transacciones:', error);
+      }
+    });
+  }
+
   showPanel(panel: string) {
     this.activePanel = panel;
   }
@@ -112,8 +145,8 @@ export class DashboardComponent implements OnInit {
     switch (this.activePanel) {
       case 'products':
         return 'Gestión de Productos';
-      case 'movements':
-        return 'Gestión de Movimientos';
+      case 'transactions':
+        return 'Gestión de Transacciones';
       default:
         return 'Dashboard';
     }
@@ -123,8 +156,8 @@ export class DashboardComponent implements OnInit {
     switch (this.activePanel) {
       case 'products':
         return 'Administra el inventario de productos y su información';
-      case 'movements':
-        return 'Controla las entradas y salidas de inventario';
+      case 'transactions':
+        return 'Controla las transacciones de inventario (entradas, salidas, ajustes)';
       default:
         return 'Panel de control principal';
     }
@@ -243,14 +276,16 @@ export class DashboardComponent implements OnInit {
     this.notificationService.showError(message);
   }
 
-  // Métodos para movimientos
-  filterMovements() {
-    this.filteredMovements = this.movements.filter(movement => {
-      const matchesSearch = movement.productName.toLowerCase().includes(this.movementSearchTerm.toLowerCase()) ||
-                           movement.reason.toLowerCase().includes(this.movementSearchTerm.toLowerCase()) ||
-                           movement.user.toLowerCase().includes(this.movementSearchTerm.toLowerCase());
-      const matchesType = !this.selectedMovementType || movement.type === this.selectedMovementType;
-      const matchesDate = !this.selectedDate || this.isSameDate(movement.date, new Date(this.selectedDate));
+  // Métodos para transacciones
+  filterTransactions() {
+    this.filteredTransactions = this.transactions.filter(transaction => {
+      const product = this.products.find(p => p.id === transaction.productId);
+      const productName = product ? product.name : '';
+      const matchesSearch = productName.toLowerCase().includes(this.transactionSearchTerm.toLowerCase()) ||
+                           transaction.detail?.toLowerCase().includes(this.transactionSearchTerm.toLowerCase()) ||
+                           transaction.type?.toLowerCase().includes(this.transactionSearchTerm.toLowerCase());
+      const matchesType = !this.selectedTransactionType || transaction.type === this.selectedTransactionType;
+      const matchesDate = !this.selectedDate || this.isSameDate(new Date(transaction.date), new Date(this.selectedDate));
       
       return matchesSearch && matchesType && matchesDate;
     });
@@ -262,36 +297,150 @@ export class DashboardComponent implements OnInit {
 
   getTodayEntries(): number {
     const today = new Date();
-    return this.movements.filter(m => 
-      m.type === 'entry' && this.isSameDate(m.date, today)
+    return this.transactions.filter(t => 
+      t.type === 'entry' && this.isSameDate(new Date(t.date), today)
     ).length;
   }
 
   getTodayExits(): number {
     const today = new Date();
-    return this.movements.filter(m => 
-      m.type === 'exit' && this.isSameDate(m.date, today)
+    return this.transactions.filter(t => 
+      t.type === 'exit' && this.isSameDate(new Date(t.date), today)
     ).length;
   }
 
-  openMovementModal() {
-    // TODO: Implementar modal para crear movimiento
-    alert('Funcionalidad de crear movimiento - Por implementar');
+  getTotalValue(): number {
+    return this.transactions.reduce((total, transaction) => total + transaction.totalPrice, 0);
   }
 
-  viewMovement(movement: Movement) {
-    // TODO: Implementar vista detallada de movimiento
-    alert(`Ver detalles del movimiento: ${movement.id}`);
+  // Métodos para el modal de transacciones
+  openTransactionModal() {
+    this.selectedTransaction = null;
+    this.isTransactionModalOpen = true;
   }
 
-  deleteMovement(movement: Movement) {
-    if (confirm(`¿Estás seguro de eliminar el movimiento #${movement.id}?`)) {
-      const index = this.movements.findIndex(m => m.id === movement.id);
-      if (index > -1) {
-        this.movements.splice(index, 1);
-        this.filterMovements();
-      }
+  editTransaction(transaction: Transaction) {
+    this.selectedTransaction = transaction;
+    this.isTransactionModalOpen = true;
+  }
+
+  closeTransactionModal() {
+    this.isTransactionModalOpen = false;
+    this.selectedTransaction = null;
+    this.isTransactionModalLoading = false;
+  }
+
+  saveTransaction(formData: TransactionFormData) {
+    this.isTransactionModalLoading = true;
+
+    if (this.selectedTransaction) {
+      // Actualizar transacción existente (PUT)
+      this.updateTransaction(this.selectedTransaction.id, formData);
+    } else {
+      // Crear nueva transacción (POST)
+      this.createTransaction(formData);
     }
+  }
+
+  createTransaction(formData: TransactionFormData) {
+    this.transactionService.createTransaction(formData).subscribe({
+      next: (newTransaction) => {
+        console.log('Transacción creada:', newTransaction);
+        this.loadTransactions(); // Recargar la lista
+        this.closeTransactionModal();
+        this.showSuccessMessage('Transacción creada exitosamente');
+      },
+      error: (error) => {
+        console.error('Error al crear transacción:', error);
+        this.isTransactionModalLoading = false;
+        this.showErrorMessage(`Error al crear transacción: ${error.message}`);
+      }
+    });
+  }
+
+  updateTransaction(id: string, formData: TransactionFormData) {
+    this.transactionService.updateTransaction(id, formData).subscribe({
+      next: (updatedTransaction) => {
+        console.log('Transacción actualizada:', updatedTransaction);
+        this.loadTransactions(); // Recargar la lista
+        this.closeTransactionModal();
+        this.showSuccessMessage('Transacción actualizada exitosamente');
+      },
+      error: (error) => {
+        console.error('Error al actualizar transacción:', error);
+        this.isTransactionModalLoading = false;
+        this.showErrorMessage(`Error al actualizar transacción: ${error.message}`);
+      }
+    });
+  }
+
+  deleteTransaction(transaction: Transaction) {
+    if (confirm(`¿Estás seguro de eliminar esta transacción?`)) {
+      this.transactionService.deleteTransaction(transaction.id).subscribe({
+        next: () => {
+          console.log('Transacción eliminada:', transaction.id);
+          this.loadTransactions(); // Recargar la lista
+          this.showSuccessMessage('Transacción eliminada exitosamente');
+        },
+        error: (error) => {
+          console.error('Error al eliminar transacción:', error);
+          this.showErrorMessage(`Error al eliminar transacción: ${error.message}`);
+        }
+      });
+    }
+  }
+
+  // Métodos para vista detallada de transacciones
+  openTransactionDetail(transaction: Transaction) {
+    this.selectedTransaction = transaction;
+    this.isTransactionDetailOpen = true;
+  }
+
+  closeTransactionDetail() {
+    this.isTransactionDetailOpen = false;
+    this.selectedTransaction = null;
+  }
+
+  onEditTransaction(transaction: Transaction) {
+    this.closeTransactionDetail();
+    this.editTransaction(transaction);
+  }
+
+  onDeleteTransaction(transaction: Transaction) {
+    this.closeTransactionDetail();
+    this.deleteTransaction(transaction);
+  }
+
+  getProductName(productId: string): string {
+    const product = this.products.find(p => p.id === productId);
+    return product ? product.name : 'Producto no encontrado';
+  }
+
+  getTransactionTypeLabel(type: string | null): string {
+    const typeMap: { [key: string]: string } = {
+      'entry': 'Entrada',
+      'exit': 'Salida',
+      'adjustment': 'Ajuste',
+      'transfer': 'Transferencia'
+    };
+    return type ? (typeMap[type] || type) : 'No especificado';
+  }
+
+  getTransactionTypeClass(type: string | null): string {
+    const classMap: { [key: string]: string } = {
+      'entry': 'type-entry',
+      'exit': 'type-exit',
+      'adjustment': 'type-adjustment',
+      'transfer': 'type-transfer'
+    };
+    return type ? (classMap[type] || 'type-default') : 'type-default';
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   }
 
   logout() {

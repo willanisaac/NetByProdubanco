@@ -21,11 +21,11 @@
         <li class="sidebar-item">
           <button 
             class="sidebar-button" 
-            [class.active]="activePanel === 'movements'"
-            (click)="showPanel('movements')"
+            [class.active]="activePanel === 'transactions'"
+            (click)="showPanel('transactions')"
           >
             <i>📋</i>
-            Gestión de Movimientos
+            Gestión de Transacciones
           </button>
         </li>
         <li class="sidebar-item">
@@ -42,7 +42,7 @@
   </aside>
 
   <!-- Contenido principal -->
-  <main class="main-content">
+  <main class="main-content col-12">
     <header class="content-header">
       <h1 class="content-title">{{ getPanelTitle() }}</h1>
       <p class="content-subtitle">{{ getPanelSubtitle() }}</p>
@@ -169,12 +169,12 @@
         </div>
       </div>
 
-      <!-- Panel de Gestión de Movimientos -->
-      <div *ngIf="activePanel === 'movements'" class="panel fade-in">
+      <!-- Panel de Gestión de Transacciones -->
+      <div *ngIf="activePanel === 'transactions'" class="panel fade-in">
         <div class="panel-header">
-          <h2 class="panel-title">📋 Gestión de Movimientos</h2>
-          <button class="btn btn-primary" (click)="openMovementModal()">
-            <i>➕</i> Nuevo Movimiento
+          <h2 class="panel-title">📋 Gestión de Transacciones</h2>
+          <button class="btn btn-primary" (click)="openTransactionModal()">
+            <i>➕</i> Nueva Transacción
           </button>
         </div>
         
@@ -184,30 +184,49 @@
             <div class="search-box">
               <input 
                 type="text" 
-                placeholder="Buscar movimientos..." 
-                [(ngModel)]="movementSearchTerm"
-                (input)="filterMovements()"
+                placeholder="Buscar transacciones..." 
+                [(ngModel)]="transactionSearchTerm"
+                (input)="filterTransactions()"
                 class="search-input"
               >
               <i class="search-icon">🔍</i>
             </div>
             <div class="filter-controls">
-              <select [(ngModel)]="selectedMovementType" (change)="filterMovements()" class="filter-select">
+              <select [(ngModel)]="selectedTransactionType" (change)="filterTransactions()" class="filter-select">
                 <option value="">Todos los tipos</option>
                 <option value="entry">Entrada</option>
                 <option value="exit">Salida</option>
+                <option value="adjustment">Ajuste</option>
+                <option value="transfer">Transferencia</option>
               </select>
               <input 
                 type="date" 
                 [(ngModel)]="selectedDate" 
-                (change)="filterMovements()"
+                (change)="filterTransactions()"
                 class="filter-select"
               >
             </div>
           </div>
 
-          <!-- Tabla de movimientos -->
-          <div class="table-container">
+          <!-- Estado de carga -->
+          <div *ngIf="isLoadingTransactions" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Cargando transacciones...</p>
+          </div>
+
+          <!-- Mensaje de error -->
+          <div *ngIf="transactionError && !isLoadingTransactions" class="error-container">
+            <div class="error-message">
+              <h3>⚠️ Error al cargar transacciones</h3>
+              <p>{{ transactionError }}</p>
+              <button class="btn btn-primary" (click)="loadTransactions()">
+                🔄 Reintentar
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabla de transacciones -->
+          <div *ngIf="!isLoadingTransactions && !transactionError" class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
@@ -215,43 +234,51 @@
                   <th>Producto</th>
                   <th>Tipo</th>
                   <th>Cantidad</th>
-                  <th>Razón</th>
+                  <th>Precio Unit.</th>
+                  <th>Total</th>
                   <th>Fecha</th>
-                  <th>Usuario</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let movement of filteredMovements">
-                  <td>{{ movement.id }}</td>
-                  <td>{{ movement.productName }}</td>
+                <tr *ngFor="let transaction of filteredTransactions">
+                  <td>{{ transaction.id.substring(0, 8) }}...</td>
+                  <td>{{ getProductName(transaction.productId) }}</td>
                   <td>
-                    <span [class]="'movement-type ' + movement.type">
-                      {{ movement.type === 'entry' ? 'Entrada' : 'Salida' }}
+                    <span [class]="'transaction-type ' + getTransactionTypeClass(transaction.type)">
+                      {{ getTransactionTypeLabel(transaction.type) }}
                     </span>
                   </td>
-                  <td>{{ movement.quantity }}</td>
-                  <td>{{ movement.reason }}</td>
-                  <td>{{ movement.date | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td>{{ movement.user }}</td>
+                  <td>{{ transaction.quantity }}</td>
+                  <td>{{ formatCurrency(transaction.unitPrice) }}</td>
+                  <td class="total-price">{{ formatCurrency(transaction.totalPrice) }}</td>
+                  <td>{{ transaction.date | date:'dd/MM/yyyy HH:mm' }}</td>
                   <td class="actions">
-                    <button class="btn-icon view" (click)="viewMovement(movement)" title="Ver detalles">
+                    <button class="btn-icon view" (click)="openTransactionDetail(transaction)" title="Ver detalles">
                       👁️
                     </button>
-                    <button class="btn-icon delete" (click)="deleteMovement(movement)" title="Eliminar">
+                    <button class="btn-icon edit" (click)="editTransaction(transaction)" title="Editar">
+                      ✏️
+                    </button>
+                    <button class="btn-icon delete" (click)="deleteTransaction(transaction)" title="Eliminar">
                       🗑️
                     </button>
                   </td>
                 </tr>
               </tbody>
             </table>
+            
+            <!-- Mensaje cuando no hay transacciones -->
+            <div *ngIf="filteredTransactions.length === 0" class="no-data-message">
+              <p>No se encontraron transacciones que coincidan con los filtros aplicados.</p>
+            </div>
           </div>
 
-          <!-- Estadísticas de movimientos -->
+          <!-- Estadísticas de transacciones -->
           <div class="stats-summary">
             <div class="stat-item">
-              <span class="stat-label">Total Movimientos:</span>
-              <span class="stat-value">{{ movements.length }}</span>
+              <span class="stat-label">Total Transacciones:</span>
+              <span class="stat-value">{{ transactions.length }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Entradas Hoy:</span>
@@ -260,6 +287,10 @@
             <div class="stat-item">
               <span class="stat-label">Salidas Hoy:</span>
               <span class="stat-value">{{ getTodayExits() }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Valor Total:</span>
+              <span class="stat-value">{{ formatCurrency(getTotalValue()) }}</span>
             </div>
           </div>
         </div>
@@ -278,6 +309,28 @@
   (close)="closeProductModal()"
   (save)="saveProduct($event)"
 ></app-product-modal>
+
+<!-- Modal de Transacción -->
+<app-transaction-modal
+  *ngIf="isTransactionModalOpen"
+  [isOpen]="isTransactionModalOpen"
+  [transaction]="selectedTransaction"
+  [products]="products"
+  [isLoading]="isTransactionModalLoading"
+  (close)="closeTransactionModal()"
+  (save)="saveTransaction($event)"
+></app-transaction-modal>
+
+<!-- Modal de Detalle de Transacción -->
+<app-transaction-detail
+  *ngIf="isTransactionDetailOpen"
+  [isOpen]="isTransactionDetailOpen"
+  [transaction]="selectedTransaction"
+  [products]="products"
+  (close)="closeTransactionDetail()"
+  (edit)="onEditTransaction($event)"
+  (delete)="onDeleteTransaction($event)"
+></app-transaction-detail>
 
 <!-- Notificaciones -->
 <app-notification [notifications]="notifications"></app-notification>

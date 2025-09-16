@@ -1,6 +1,29 @@
+export interface Transaction {
+  id: string;
+  date: string;
+  type: string | null;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  detail: string | null;
+}
+
+export interface TransactionFormData {
+  id?: string;
+  date: string;
+  type: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  detail: string;
+}
+
+// Mantener compatibilidad con el código existente
 export interface Movement {
-  id: number;
-  productId: number;
+  id: string;
+  productId: string;
   productName: string;
   type: 'entry' | 'exit';
   quantity: number;

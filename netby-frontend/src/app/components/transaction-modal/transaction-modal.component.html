@@ -1,0 +1,140 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        {{ isEditMode ? 'Editar Transacción' : 'Nueva Transacción' }}
+      </h2>
+      <button class="close-button" (click)="closeModal()" type="button">
+        ✕
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-content">
+        <!-- Fecha -->
+        <div class="form-group">
+          <label for="date" class="form-label">Fecha y Hora *</label>
+          <input
+            type="datetime-local"
+            id="date"
+            [(ngModel)]="formData.date"
+            name="date"
+            class="form-input"
+            required
+          >
+        </div>
+
+        <!-- Tipo de Transacción -->
+        <div class="form-group">
+          <label for="type" class="form-label">Tipo de Transacción *</label>
+          <select
+            id="type"
+            [(ngModel)]="formData.type"
+            name="type"
+            class="form-select"
+            required
+          >
+            <option value="">Seleccionar tipo...</option>
+            <option *ngFor="let type of transactionTypes" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Producto -->
+        <div class="form-group">
+          <label for="productId" class="form-label">Producto *</label>
+          <select
+            id="productId"
+            [(ngModel)]="formData.productId"
+            name="productId"
+            class="form-select"
+            required
+          >
+            <option value="">Seleccionar producto...</option>
+            <option *ngFor="let product of products" [value]="product.id">
+              {{ product.name }} - {{ product.category }} (Stock: {{ product.stock }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Cantidad -->
+        <div class="form-group">
+          <label for="quantity" class="form-label">Cantidad *</label>
+          <input
+            type="number"
+            id="quantity"
+            [(ngModel)]="formData.quantity"
+            (input)="onQuantityChange()"
+            name="quantity"
+            class="form-input"
+            min="1"
+            required
+          >
+        </div>
+
+        <!-- Precio Unitario -->
+        <div class="form-group">
+          <label for="unitPrice" class="form-label">Precio Unitario</label>
+          <input
+            type="number"
+            id="unitPrice"
+            [(ngModel)]="formData.unitPrice"
+            (input)="onUnitPriceChange()"
+            name="unitPrice"
+            class="form-input"
+            min="0"
+            step="0.01"
+          >
+        </div>
+
+        <!-- Precio Total -->
+        <div class="form-group">
+          <label for="totalPrice" class="form-label">Precio Total</label>
+          <input
+            type="number"
+            id="totalPrice"
+            [(ngModel)]="formData.totalPrice"
+            name="totalPrice"
+            class="form-input"
+            min="0"
+            step="0.01"
+            readonly
+          >
+        </div>
+
+        <!-- Detalle -->
+        <div class="form-group">
+          <label for="detail" class="form-label">Detalle</label>
+          <textarea
+            id="detail"
+            [(ngModel)]="formData.detail"
+            name="detail"
+            class="form-textarea"
+            rows="3"
+            placeholder="Descripción adicional de la transacción..."
+          ></textarea>
+        </div>
+
+        <!-- Mensaje de error -->
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="isLoading" class="loading-spinner"></span>
+          {{ isEditMode ? 'Actualizar' : 'Crear' }} Transacción
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

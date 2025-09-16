@@ -1,0 +1,110 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Detalles de la Transacción</h2>
+      <button class="close-button" (click)="closeModal()" type="button">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-content" *ngIf="transaction">
+      <!-- Información básica -->
+      <div class="detail-section">
+        <h3 class="section-title">Información General</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">ID:</span>
+            <span class="detail-value">{{ transaction.id.substring(0, 8) }}...</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Fecha:</span>
+            <span class="detail-value">{{ formatDate(transaction.date) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Tipo:</span>
+            <span class="detail-value" [class]="getTransactionTypeClass(transaction.type)">
+              {{ getTransactionTypeLabel(transaction.type) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información del producto -->
+      <div class="detail-section">
+        <h3 class="section-title">Producto</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Nombre:</span>
+            <span class="detail-value">{{ getProductName(transaction.productId) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Categoría:</span>
+            <span class="detail-value">{{ getProductCategory(transaction.productId) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">ID del Producto:</span>
+            <span class="detail-value">{{ transaction.productId.substring(0, 8) }}...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información de la transacción -->
+      <div class="detail-section">
+        <h3 class="section-title">Detalles de la Transacción</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Cantidad:</span>
+            <span class="detail-value quantity">{{ transaction.quantity }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Precio Unitario:</span>
+            <span class="detail-value">{{ formatCurrency(transaction.unitPrice) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Precio Total:</span>
+            <span class="detail-value total-price">{{ formatCurrency(transaction.totalPrice) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalle adicional -->
+      <div class="detail-section" *ngIf="transaction.detail">
+        <h3 class="section-title">Detalle Adicional</h3>
+        <div class="detail-item full-width">
+          <span class="detail-value detail-text">{{ transaction.detail }}</span>
+        </div>
+      </div>
+
+      <!-- Resumen financiero -->
+      <div class="detail-section summary">
+        <h3 class="section-title">Resumen</h3>
+        <div class="summary-card">
+          <div class="summary-item">
+            <span class="summary-label">Valor Total:</span>
+            <span class="summary-value">{{ formatCurrency(transaction.totalPrice) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Cantidad:</span>
+            <span class="summary-value">{{ transaction.quantity }} unidades</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Precio Promedio:</span>
+            <span class="summary-value">{{ formatCurrency(transaction.unitPrice) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="closeModal()">
+        Cerrar
+      </button>
+      <button type="button" class="btn btn-warning" (click)="onEdit()">
+        ✏️ Editar
+      </button>
+      <button type="button" class="btn btn-danger" (click)="onDelete()">
+        🗑️ Eliminar
+      </button>
+    </div>
+  </div>
+</div>

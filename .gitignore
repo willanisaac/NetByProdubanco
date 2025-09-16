@@ -1,4 +1,7 @@
 netby-frontend/.angular/
-netby-backend/.vs/
-netby-backend/*/bin/
-netby-backend/*/obj/
+netby-backend-prod/.vs/
+netby-backend-prod/*/bin/
+netby-backend-prod/*/obj/
+netby-backend-mov/.vs/
+netby-backend-mov/*/bin/
+netby-backend-mov/*/obj/

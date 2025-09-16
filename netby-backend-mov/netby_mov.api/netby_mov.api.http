@@ -1,0 +1,6 @@
+@netby_mov.api_HostAddress = http://localhost:5121
+
+GET {{netby_mov.api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
